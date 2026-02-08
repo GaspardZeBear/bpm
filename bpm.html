@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lecture MP3 avec Web Audio API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #visualizer {
+            width: 100%;
+            height: 200px; /* Canvas plus haut */
+            background-color: #f0f0f0;
+            margin-top: 20px;
+        }
+        canvas {
+            display: block;
+        }
+        button {
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #seekSlider {
+            width: 100%;
+            margin-top: 10px;
+        }
+        #timeDisplay {
+            text-align: center;
+            margin-top: 5px;
+        }
+        .frequency-label {
+            position: absolute;
+            color: rgba(0, 0, 0, 0.7);
+            font-size: 12px;
+            pointer-events: none;
+        }
+    </style>
+          <script type="module" src="src/bpm.mjs"></script>
+</head>
+<body>
+
+    <h1>Lecture MP3 avec Web Audio API</h1>
+
+    <input type="file" id="mp3Input" accept=".mp3" />
+    <button id="playButton" disabled>Lire</button>
+    <button id="pauseButton" disabled>Pause</button>
+    <button id="stopButton" disabled>Arrêter</button>
+
+    <div>
+        <label>
+            <input type="radio" name="displayType" value="time" checked>
+            Domaine temporel (TimeDomain)
+        </label>
+        <label>
+            <input type="radio" name="displayType" value="frequency">
+            Domaine fréquentiel (Frequency)
+        </label>
+    </div>
+    
+    <div>BPM 
+    <div id="bpmDisplay">
+    </div>
+</div>
+
+    <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
+    <div id="timeDisplay">00:00 / 00:00</div>
+
+    <div id="visualizer">
+        <canvas id="canvas"></canvas>
+    </div>
+
+    
+</body>
+</html>
