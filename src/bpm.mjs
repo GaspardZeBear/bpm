@@ -37,9 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialiser le contexte audio
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    bpm = new BPM(bpmDisplay, audioContext)
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
+    bpm = new BPM(bpmDisplay, analyser.fftSize, audioContext)
 
     // Gestionnaire pour le chargement du fichier MP3
     mp3Input.addEventListener('change', (e) => {
@@ -177,7 +177,7 @@ function draw() {
 
     if (displayType === 'time') {
         analyser.getByteTimeDomainData(dataArray);
-        bpm.autoDetectBPM(dataArray);
+        bpm.detectBPM(dataArray);
         drawTimeDomain(dataArray, bufferLength);
     } else {
         analyser.getByteFrequencyData(dataArray);
