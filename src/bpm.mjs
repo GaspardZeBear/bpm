@@ -1,9 +1,11 @@
 
 import { BPM } from './classes/BPM.mjs';
+import { Kick } from './classes/Kick.mjs';
 // Variables globales
 let audioContext;
 let audioSource;
 let analyser;
+let kickAnalyser;
 let canvasCtx;
 let animationId;
 let audioBuffer;
@@ -11,18 +13,19 @@ let startTime = 0;
 let pauseTime = 0;
 let isPlaying = false;
 let bpm;
+let kick
 let frequencyLabels = [];
 
 
 console.log("enter bpm.mjs")
 // Initialisation
 
-   function startStopAudio() {
-        window.addEventListener('click', () => {
-            this.playMusic()
-        }
-        );
+function startStopAudio() {
+    window.addEventListener('click', () => {
+        this.playMusic()
     }
+    );
+}
 
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,7 +42,18 @@ document.addEventListener('DOMContentLoaded', () => {
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
+
+
+    const kickFilter = audioContext.createBiquadFilter();
+    kickFilter.type = 'bandpass';
+    kickFilter.frequency.value = 50; // Centre à 50 Hz (milieu de 40-60 Hz)
+    kickFilter.Q.value = 1; // Bande passante étroite pour une plage de fréquences serrée
+    kickAnalyser = audioContext.createAnalyser();
+    kickAnalyser.fftSize = 2048;
+    kickAnalyser.smoothingTimeConstant = 0.0; // Pas de lissage - veut des kicks bruts
+    
     bpm = new BPM(bpmDisplay, analyser.fftSize, audioContext)
+    kick = new Kick(bpmDisplay, analyser.fftSize, audioContext)
 
     // Gestionnaire pour le chargement du fichier MP3
     mp3Input.addEventListener('change', (e) => {
@@ -75,6 +89,8 @@ document.addEventListener('DOMContentLoaded', () => {
         audioSource.buffer = audioBuffer;
         audioSource.connect(analyser);
         analyser.connect(audioContext.destination);
+        audioSource.connect(kickFilter);
+        kickFilter.connect(kickAnalyser);
 
         if (pauseTime > 0) {
             audioSource.start(0, pauseTime);
@@ -177,10 +193,12 @@ function draw() {
 
     if (displayType === 'time') {
         analyser.getByteTimeDomainData(dataArray);
-        bpm.detectBPM(dataArray);
+        //bpm.detectBPM(dataArray);
+        kick.detectBPM(dataArray)
         drawTimeDomain(dataArray, bufferLength);
     } else {
-        analyser.getByteFrequencyData(dataArray);
+        //analyser.getByteFrequencyData(dataArray);
+        kickAnalyser.getByteFrequencyData(dataArray);
         drawFrequencyDomain(dataArray, bufferLength);
     }
 
