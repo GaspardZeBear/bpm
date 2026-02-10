@@ -15,7 +15,13 @@
             background-color: #f0f0f0;
             margin-top: 20px;
         }
-        canvas {
+        canvasTime {
+            display: block;
+        }
+        canvasFreq {
+            display: block;
+        }
+        canvasFreqFilter {
             display: block;
         }
         button {
@@ -68,8 +74,14 @@
     <input type="range" id="seekSlider" min="0" max="100" value="0" disabled>
     <div id="timeDisplay">00:00 / 00:00</div>
 
-    <div id="visualizer">
-        <canvas id="canvas"></canvas>
+    <div id="timeVisualizer">
+        <canvas id="canvasTime"></canvas>
+    </div>
+    <div id="freqVisualizer">
+        <canvas id="canvasFreq"></canvas>
+    </div>
+    <div id="freqFilterVisualizer">
+        <canvas id="canvasFreqFilter"></canvas>
     </div>
 
     

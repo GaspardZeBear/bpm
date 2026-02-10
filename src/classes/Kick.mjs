@@ -38,14 +38,14 @@ class Kick {
 
     const interval = Date.now() - this.lastKickTime;
     // Détecter la grosse caisse lorsque TOUTES les conditions sont remplies :
-    const isKick = (jumpPercentage >= 0.20 // Saut de 20 % et plus
+    const isKick = (jumpPercentage >= 0.30 // Saut de 20 % et plus
       && peakAmplitude > this.lastPeakAmplitude // Front montant
       && interval >= 300 // Refroidissement de 150 ms
-      && peakAmplitude > 0.1) // Minimum absolu
+      && peakAmplitude > 0.6) // Minimum absolu
 
     //console.log(`kick ${this.id} amplitude ${peakAmplitude} interval ${interval}  lastPeak ${this.lastPeakAmplitude} jumpPercentage ${jumpPercentage} `);
     if (isKick) {
-      console.log(`Boum ${peakAmplitude} ${interval}`);
+      //console.log(`Boum ${peakAmplitude} ${interval}`);
       // Ajouter à la moyenne mobile (30 derniers kicks)
       this.detectedIntervals.push(interval);
       if (this.detectedIntervals.length > 30) {
@@ -55,7 +55,7 @@ class Kick {
       const avgInterval = this.detectedIntervals.reduce((a, b) => a + b, 0) / this.detectedIntervals.length;
       //const detectedBPM = Math.round(60 / avgInterval)
       const detectedBPM = 60000 / avgInterval;
-      console.log(`Boum ${peakAmplitude} ${interval} bpm ${detectedBPM}`);
+      console.log(`Boum ${peakAmplitude} interval ${interval} avgInterval ${avgInterval} bpm ${detectedBPM}`);
       this.lastKickTime = Date.now()
       this.bpmDisplay = interval
     }
