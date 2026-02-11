@@ -50,17 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
     analyser.fftSize = 2048;
 
 
-    const kickFilter = audioContext.createBiquadFilter();
+    //const kickFilter = audioContext.createBiquadFilter();
     //kickFilter.type = 'bandpass';
-    kickFilter.type = 'lowpass';
-    kickFilter.frequency.value = 50; // Centre à 50 Hz (milieu de 40-60 Hz)
-    kickFilter.Q.value = 1; // 2.5 Bande passante étroite pour une plage de fréquences serrée
+    //kickFilter.type = 'lowpass';
+    //kickFilter.frequency.value = 50; // Centre à 50 Hz (milieu de 40-60 Hz)
+    //kickFilter.Q.value = 2.5; // 2.5 Bande passante étroite pour une plage de fréquences serrée
     kickAnalyser = audioContext.createAnalyser();
     kickAnalyser.fftSize = 2048;
     kickAnalyser.smoothingTimeConstant = 0.0; // Pas de lissage - veut des kicks bruts
-    
-    bpm = new BPM(bpmDisplay, analyser.fftSize, audioContext)
-    kick = new Kick(bpmDisplay, analyser.fftSize, audioContext)
+
+    //bpm = new BPM(bpmDisplay, analyser.fftSize, audioContext)
+    kick = new Kick(analyser.fftSize, audioContext)
+    const kickFilter = kick.getFilter()
 
     // Gestionnaire pour le chargement du fichier MP3
     mp3Input.addEventListener('change', (e) => {
@@ -96,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
         audioSource.buffer = audioBuffer;
         audioSource.connect(analyser);
         analyser.connect(audioContext.destination);
-        audioSource.connect(kickFilter);
-        kickFilter.connect(kickAnalyser);
+        audioSource.connect(kick.getFilter());
+        kick.getFilter().connect(kickAnalyser);
 
         if (pauseTime > 0) {
             audioSource.start(0, pauseTime);
@@ -198,7 +199,7 @@ function draw() {
     const canvasTime = document.getElementById('canvasTime');
     const canvasFreq = document.getElementById('canvasFreq');
     const canvasFreqFilter = document.getElementById('canvasFreqFilter');
-    const displayType = document.querySelector('input[name="displayType"]:checked').value;
+    //const displayType = document.querySelector('input[name="displayType"]:checked').value;
     const bufferLength = analyser.frequencyBinCount;
     const timeDataArray = new Uint8Array(bufferLength);
     const freqDataArray = new Uint8Array(bufferLength);
@@ -208,17 +209,32 @@ function draw() {
     canvasFreqCtx.clearRect(0, 0, canvasFreq.width, canvasFreq.height);
     canvasFreqFilterCtx.clearRect(0, 0, canvasFreqFilter.width, canvasFreqFilter.height);
 
-    //if (displayType === 'time') {
-        analyser.getByteTimeDomainData(timeDataArray);
-        //bpm.detectBPM(dataArray);
-        kick.detectBPM(timeDataArray)
-        drawTimeDomain('canvasTime',timeDataArray, bufferLength);
-    //} else {
-        analyser.getByteFrequencyData(freqDataArray);
-        drawFrequencyDomain('canvasFreq',freqDataArray, bufferLength);
-        kickAnalyser.getByteFrequencyData(freqFilterDataArray);
-        drawFrequencyFilterDomain('canvasFreqFilter',freqFilterDataArray, bufferLength);
-    //}
+    analyser.getByteTimeDomainData(timeDataArray);
+    drawTimeDomain('canvasTime', timeDataArray, bufferLength);
+
+    kickAnalyser.getByteTimeDomainData(timeDataArray)
+    kick.detectKick(timeDataArray)
+
+    analyser.getByteFrequencyData(freqDataArray);
+    drawFrequencyDomain('canvasFreq', freqDataArray, bufferLength);
+
+    kickAnalyser.getByteFrequencyData(freqFilterDataArray);
+    drawFrequencyFilterDomain('canvasFreqFilter', freqFilterDataArray, bufferLength);
+    /*
+    let selectedArray=new Uint8Array(bufferLength);
+    for (let i=0; i<bufferLength;i++) {
+        selectedArray[i]=0
+    }
+    for (let i=0; i<5;i++) {
+        selectedArray[i]=freqFilterDataArray[i]
+    }
+    drawFrequencyFilterDomain('canvasFreqFilter', selectedArray, bufferLength);
+    */
+    if (kick.getKick()) {
+        document.getElementById('bpmDisplay').innerHTML = `raw ${kick.getRawInterval()} BPM ${kick.getAvgBPM()}`
+    } else {
+        //document.getElementById('bpmDisplay').innerHTML="-"
+    }
 
     animationId = requestAnimationFrame(draw);
 }
@@ -246,7 +262,7 @@ function drawTimeDomain(canvasName, dataArray, bufferLength) {
 }
 
 // Dessiner le domaine fréquentiel avec étiquettes de fréquence
-function drawFrequencyDomain(canvasName,dataArray, bufferLength) {
+function drawFrequencyDomain(canvasName, dataArray, bufferLength) {
     const canvas = document.getElementById(canvasName);
     const barWidth = (canvasFreq.width / bufferLength) * 2.5;
     let x = 0;
@@ -273,8 +289,8 @@ function drawFrequencyDomain(canvasName,dataArray, bufferLength) {
 }
 
 
-    // Dessiner le domaine fréquentiel avec étiquettes de fréquence
-function drawFrequencyFilterDomain(canvasName,dataArray, bufferLength) {
+// Dessiner le domaine fréquentiel avec étiquettes de fréquence
+function drawFrequencyFilterDomain(canvasName, dataArray, bufferLength) {
     const canvas = document.getElementById(canvasName);
     const barWidth = (canvasFreqFilter.width / bufferLength) * 2.5;
     let x = 0;
