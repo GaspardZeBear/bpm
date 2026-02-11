@@ -33,6 +33,16 @@ function startStopAudio() {
 }
 
 
+function connectAudioNodes() {
+    audioSource.connect(analyser);
+    analyser.connect(audioContext.destination);
+    audioSource.connect(kick.getFilter());
+    kick.getFilter().connect(kickAnalyser);
+    //kickAnalyser.connect(audioContext.destination);
+}
+
+
+
 document.addEventListener('DOMContentLoaded', () => {
     const mp3Input = document.getElementById('mp3Input');
     const playButton = document.getElementById('playButton');
@@ -40,7 +50,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopButton = document.getElementById('stopButton');
     const seekSlider = document.getElementById('seekSlider');
     const timeDisplay = document.getElementById('timeDisplay');
-    
+
     // Initialiser le contexte audio
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
@@ -86,11 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         audioSource = audioContext.createBufferSource();
         audioSource.buffer = audioBuffer;
-        audioSource.connect(analyser);
-        //analyser.connect(audioContext.destination);
-        audioSource.connect(kick.getFilter());
-        kick.getFilter().connect(kickAnalyser);
-        kickAnalyser.connect(audioContext.destination);
+        connectAudioNodes()
 
         if (pauseTime > 0) {
             audioSource.start(0, pauseTime);
@@ -142,11 +148,12 @@ document.addEventListener('DOMContentLoaded', () => {
             audioSource.stop();
             audioSource = audioContext.createBufferSource();
             audioSource.buffer = audioBuffer;
-            audioSource.connect(analyser);
-            analyser.connect(audioContext.destination);
-            analyser.connect(audioContext.destination);
-            audioSource.connect(kick.getFilter());
-            kick.getFilter().connect(kickAnalyser);
+            connectAudioNodes()
+            //audioSource.connect(analyser);
+            //analyser.connect(audioContext.destination);
+            //analyser.connect(audioContext.destination);
+           // audioSource.connect(kick.getFilter());
+            //kick.getFilter().connect(kickAnalyser);
 
             audioSource.start(0, seekSlider.value);
             startTime = audioContext.currentTime - seekSlider.value;
@@ -204,7 +211,7 @@ function draw() {
     analyser.getByteTimeDomainData(timeDataArray);
     drawTimeDomain('canvasTime', timeDataArray, bufferLength);
 
-    kickAnalyser.getByteTimeDomainData(timeDataArray)
+    //kickAnalyser.getByteTimeDomainData(timeDataArray)
     kick.detectKick(timeDataArray)
 
     analyser.getByteFrequencyData(freqDataArray);
@@ -278,7 +285,8 @@ function drawFrequencyDomain(canvasName, dataArray, bufferLength) {
             label.textContent = `${Math.round(frequency)} Hz`;
             label.style.left = `${x}px`;
             label.style.top = `${canvas.offsetTop + canvas.height - 20}px`;
-            document.body.appendChild(label);
+            //document.body.appendChild(label);
+            //canvas.parentElement.appendChild(label);
             frequencyLabels.push(label);
         }
         x += barWidth + 1;
