@@ -6,9 +6,12 @@ let audioContext;
 let audioSource;
 let analyser;
 let kickAnalyser;
-let canvasTimeCtx;
-let canvasFreqCtx;
-let canvasFreqFilterCtx;
+let canvasTime;
+let canvasFreq;
+let canvasFreqFilter;
+//let canvasTimeCtx;
+//let canvasFreqCtx;
+//let canvasFreqFilterCtx;
 let animationId;
 let audioBuffer;
 let startTime = 0;
@@ -37,29 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopButton = document.getElementById('stopButton');
     const seekSlider = document.getElementById('seekSlider');
     const timeDisplay = document.getElementById('timeDisplay');
-    const canvasTime = document.getElementById('canvasTime');
-    canvasTimeCtx = canvasTime.getContext('2d');
-    const canvasFreq = document.getElementById('canvasFreq');
-    canvasFreqCtx = canvasFreq.getContext('2d');
-    const canvasFreqFilter = document.getElementById('canvasFreqFilter');
-    canvasFreqFilterCtx = canvasFreqFilter.getContext('2d');
-
+    
     // Initialiser le contexte audio
     audioContext = new (window.AudioContext || window.webkitAudioContext)();
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
 
-
-    //const kickFilter = audioContext.createBiquadFilter();
-    //kickFilter.type = 'bandpass';
-    //kickFilter.type = 'lowpass';
-    //kickFilter.frequency.value = 50; // Centre à 50 Hz (milieu de 40-60 Hz)
-    //kickFilter.Q.value = 2.5; // 2.5 Bande passante étroite pour une plage de fréquences serrée
     kickAnalyser = audioContext.createAnalyser();
     kickAnalyser.fftSize = 2048;
     kickAnalyser.smoothingTimeConstant = 0.0; // Pas de lissage - veut des kicks bruts
 
-    //bpm = new BPM(bpmDisplay, analyser.fftSize, audioContext)
+    bpm = new BPM(analyser.fftSize, audioContext)
     kick = new Kick(analyser.fftSize, audioContext)
     const kickFilter = kick.getFilter()
 
@@ -96,9 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
         audioSource = audioContext.createBufferSource();
         audioSource.buffer = audioBuffer;
         audioSource.connect(analyser);
-        analyser.connect(audioContext.destination);
+        //analyser.connect(audioContext.destination);
         audioSource.connect(kick.getFilter());
         kick.getFilter().connect(kickAnalyser);
+        kickAnalyser.connect(audioContext.destination);
 
         if (pauseTime > 0) {
             audioSource.start(0, pauseTime);
@@ -152,6 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
             audioSource.buffer = audioBuffer;
             audioSource.connect(analyser);
             analyser.connect(audioContext.destination);
+            analyser.connect(audioContext.destination);
+            audioSource.connect(kick.getFilter());
+            kick.getFilter().connect(kickAnalyser);
+
             audioSource.start(0, seekSlider.value);
             startTime = audioContext.currentTime - seekSlider.value;
         }
@@ -159,6 +155,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Redimensionnement du canvas
     window.addEventListener('resize', () => {
+        const canvasTime = document.getElementById('canvasTime');
+        const canvasFreq = document.getElementById('canvasFreq');
+        const canvasFreqFilter = document.getElementById('canvasFreqFilter');
         canvasTime.width = canvasTime.parentElement.clientWidth;
         canvasTime.height = canvasTime.parentElement.clientHeight;
         canvasFreq.width = canvasFreq.parentElement.clientWidth;
@@ -196,18 +195,11 @@ function formatTime(seconds) {
 
 // Fonction pour dessiner les données audio
 function draw() {
-    const canvasTime = document.getElementById('canvasTime');
-    const canvasFreq = document.getElementById('canvasFreq');
-    const canvasFreqFilter = document.getElementById('canvasFreqFilter');
-    //const displayType = document.querySelector('input[name="displayType"]:checked').value;
+
     const bufferLength = analyser.frequencyBinCount;
     const timeDataArray = new Uint8Array(bufferLength);
     const freqDataArray = new Uint8Array(bufferLength);
     const freqFilterDataArray = new Uint8Array(bufferLength);
-
-    canvasTimeCtx.clearRect(0, 0, canvasTime.width, canvasTime.height);
-    canvasFreqCtx.clearRect(0, 0, canvasFreq.width, canvasFreq.height);
-    canvasFreqFilterCtx.clearRect(0, 0, canvasFreqFilter.width, canvasFreqFilter.height);
 
     analyser.getByteTimeDomainData(timeDataArray);
     drawTimeDomain('canvasTime', timeDataArray, bufferLength);
@@ -219,7 +211,7 @@ function draw() {
     drawFrequencyDomain('canvasFreq', freqDataArray, bufferLength);
 
     kickAnalyser.getByteFrequencyData(freqFilterDataArray);
-    drawFrequencyFilterDomain('canvasFreqFilter', freqFilterDataArray, bufferLength);
+    drawFrequencyDomain('canvasFreqFilter', freqFilterDataArray, bufferLength);
     /*
     let selectedArray=new Uint8Array(bufferLength);
     for (let i=0; i<bufferLength;i++) {
@@ -242,42 +234,47 @@ function draw() {
 // Dessiner le domaine temporel
 function drawTimeDomain(canvasName, dataArray, bufferLength) {
     const canvas = document.getElementById(canvasName);
-    canvasTimeCtx.lineWidth = 2;
-    canvasTimeCtx.strokeStyle = 'rgb(0, 0, 0)';
-    canvasTimeCtx.beginPath();
+    const ctx = canvas.getContext("2d")
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgb(0, 0, 0)';
+    ctx.beginPath();
     const sliceWidth = canvas.width / bufferLength;
     let x = 0;
     for (let i = 0; i < bufferLength; i++) {
         const v = dataArray[i] / 128.0;
         const y = (v * canvas.height) / 2;
         if (i === 0) {
-            canvasTimeCtx.moveTo(x, y);
+            ctx.moveTo(x, y);
         } else {
-            canvasTimeCtx.lineTo(x, y);
+            ctx.lineTo(x, y);
         }
         x += sliceWidth;
     }
-    canvasTimeCtx.lineTo(canvasTime.width, canvasTime.height / 2);
-    canvasTimeCtx.stroke();
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
 }
 
 // Dessiner le domaine fréquentiel avec étiquettes de fréquence
 function drawFrequencyDomain(canvasName, dataArray, bufferLength) {
     const canvas = document.getElementById(canvasName);
-    const barWidth = (canvasFreq.width / bufferLength) * 2.5;
+    const ctx = canvas.getContext("2d")
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const barWidth = (canvas.width / bufferLength) * 2.5;
     let x = 0;
     // Effacer les anciennes étiquettes
     frequencyLabels.forEach(label => label.remove());
     frequencyLabels = [];
+
     for (let i = 0; i < bufferLength; i++) {
         const barHeight = (dataArray[i] / 255.0) * canvas.height;
-        canvasFreqCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
-        canvasFreqCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        ctx.fillStyle = `rgb(${barHeight + 100}, 0, 50)`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
         // Ajouter une étiquette de fréquence toutes les 20 barres
         if (i % 20 === 0) {
             const frequency = (i * audioContext.sampleRate) / analyser.fftSize;
             const label = document.createElement('div');
-            label.className = 'freq-label';
+            label.className = canvasName + 'Label';
             label.textContent = `${Math.round(frequency)} Hz`;
             label.style.left = `${x}px`;
             label.style.top = `${canvas.offsetTop + canvas.height - 20}px`;
@@ -288,32 +285,5 @@ function drawFrequencyDomain(canvasName, dataArray, bufferLength) {
     }
 }
 
-
-// Dessiner le domaine fréquentiel avec étiquettes de fréquence
-function drawFrequencyFilterDomain(canvasName, dataArray, bufferLength) {
-    const canvas = document.getElementById(canvasName);
-    const barWidth = (canvasFreqFilter.width / bufferLength) * 2.5;
-    let x = 0;
-    // Effacer les anciennes étiquettes
-    frequencyLabels.forEach(label => label.remove());
-    frequencyLabels = [];
-    for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255.0) * canvas.height;
-        canvasFreqFilterCtx.fillStyle = `rgb(${barHeight + 100}, 50, 50)`;
-        canvasFreqFilterCtx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-        // Ajouter une étiquette de fréquence toutes les 20 barres
-        if (i % 20 === 0) {
-            const frequency = (i * audioContext.sampleRate) / analyser.fftSize;
-            const label = document.createElement('div');
-            label.className = 'freqFilter-label';
-            label.textContent = `${Math.round(frequency)} Hz`;
-            label.style.left = `${x}px`;
-            label.style.top = `${canvas.offsetTop + canvas.height - 20}px`;
-            document.body.appendChild(label);
-            frequencyLabels.push(label);
-        }
-        x += barWidth + 1;
-    }
-}
 
 

@@ -6,17 +6,41 @@ class AutoCorrelator {
 
     // Variables globales pour la détection de BPM
     this.bpm = 0;
-    this.period=period
+    this.period = period
     this.audioContext = audioContext
     this.sampleRate = audioContext.sampleRate
     this.fftSize = fftSize
     this.sampleDuration = 2 * this.sampleRate / this.fftSize
     this.audioBufferHistory = [];
+    this.rawSamples = [];
     this.bufferSize = 4096;
     this.id = 0
     this.prevSampleTime = 0
     this.prevAutoCorrelationTime = 0
     this.konsol = new Konsol("http://localhost:1961/log", 1000)
+  }
+//-----------------------------------------
+  checkRawSamples() {
+    let deltas=[]
+    for (let i = 0; i < Math.round(this.rawSamples[0].length); i++) {
+    console.log(`i=${i} ${this.rawSamples[0][i]} ${this.rawSamples[1][i]} `)
+    //console.log(this.rawSamples[1])
+    }
+    return
+    for (let i = 0; i < Math.round(this.rawSamples[0].length); i++) {
+      let delta = 0;
+      for (let j = 0; j < this.rawSamples[1].length; j++) {
+        if ( (this.rawSamples[0][i] == this.rawSamples[1][i+j]) ) {
+          console.log(`equal i=${i} j=${j} idx=${i+j}`)
+        }
+      }
+      //correlations[i] = correlation;
+      //if (correlations[lag] > maxCorrelation) {
+      //  maxCorrelation = correlations[lag];
+      //  bestLag = lag;
+      //}
+    }
+    
   }
 
   //-----------------------------------------
@@ -36,7 +60,7 @@ class AutoCorrelator {
     // Calculer la corrélation brute pour chaque lag
     let maxCorrelation = 0;
     let bestLag = 0;
-    for (let lag = 0; lag < Math.round(this.audioBufferHistory.length/2); lag++) {
+    for (let lag = 0; lag < Math.round(this.audioBufferHistory.length / 2); lag++) {
       let correlation = 0;
       for (let i = 0; i < this.audioBufferHistory.length - lag; i++) {
         correlation += this.audioBufferHistory[i] * this.audioBufferHistory[i + lag];
@@ -56,15 +80,15 @@ class AutoCorrelator {
     */
     //this.konsol.httpLog(Date.now(), this.id, 'correlations', correlations)
     //console.log(correlations)
-    for (let lag= Math.round(correlations.length/3); lag < Math.round(correlations.length) ; lag++) { // Limiter la recherche aux lags pertinents
+    for (let lag = Math.round(correlations.length / 3); lag < Math.round(correlations.length); lag++) { // Limiter la recherche aux lags pertinents
       if (correlations[lag] > maxCorrelation) {
         maxCorrelation = correlations[lag];
         //console.log(`candidate maxCo ${maxCorrelation} bestLag ${bestLag}`)
         bestLag = lag;
       }
     }
-    
-    let correlationTime=bestLag*(Date.now() - this.prevAutoCorrelationTime)/this.audioBufferHistory.length
+
+    let correlationTime = bestLag * (Date.now() - this.prevAutoCorrelationTime) / this.audioBufferHistory.length
     //this.konsol.httpLog(Date.now(), this.id, 'correlation', `maxCo ${maxCorrelation} bestLag ${bestLag}`)
 
     // Calculer le BPM
@@ -73,7 +97,7 @@ class AutoCorrelator {
       const periodInSeconds = (bestLag * 4) / (this.sampleRate); // Facteur ajustable
       let bpm = 60 / periodInSeconds;
       console.log(`maxCo ${maxCorrelation} correlationTime ${correlationTime} bestLag ${bestLag} bpm ${bpm}`)
-      return(bpm)
+      return (bpm)
     }
     return 0;
   }
@@ -85,11 +109,11 @@ class AutoCorrelator {
     this.id += 1
     let tmstp = Date.now()
     // discard first sample
-    if ( this.prevSampleTime === 0 ) {
+    if (this.prevSampleTime === 0) {
       this.prevSampleTime = tmstp
       return
     }
-    let delta = tmstp - this.prevSampleTime 
+    let delta = tmstp - this.prevSampleTime
     this.prevSampleTime = tmstp
 
     //let dataArrayArray = new Array(dataArray.length)
@@ -98,17 +122,24 @@ class AutoCorrelator {
     //}
     //this.konsol.httpLog(Date.now(), this.id, 'dataArray', dataArrayArray)
 
-  
+
     // buffer contains already registered datas (from previous sample)
     // Let's try to get rid of overlap by only keeping new datas
     // keep index is where new datas are (before, it's overlap)
-    let keepIndex = Math.round(delta * this.sampleRate/1000)
+    let keepIndex = Math.round(delta * this.sampleRate / 1000)
 
     // may happen if too much time between samples !
-    if (keepIndex > dataArray.length ) {
-      this.audioBufferHistory=[]
+    if (keepIndex > dataArray.length) {
+      this.audioBufferHistory = []
       this.prevSampleTime = tmstp
       return
+    }
+    if (this.id == 10 ) {
+      this.rawSamples.push(dataArray)
+    }
+    if (this.id == 11 ) {
+      this.rawSamples.push(dataArray)
+      this.checkRawSamples()
     }
     //console.log(`delta ${delta} index ${keepIndex} length ${dataArray.length}`)
     // Convertir les données en valeurs centrées autour de 0
@@ -116,7 +147,7 @@ class AutoCorrelator {
     //console.log(dataArray)
     //let bufferIdx=0
     for (let i = 0; i < buffer.length; i++) {
-      let dataArrayIdx=keepIndex+i
+      let dataArrayIdx = keepIndex + i
       if (isNaN(dataArray[dataArrayIdx])) {
         buffer[i] = 0
       } else {
@@ -143,7 +174,7 @@ class AutoCorrelator {
 
   }
   getBpm() {
-    return(this.bpm)
+    return (this.bpm)
   }
 
 }

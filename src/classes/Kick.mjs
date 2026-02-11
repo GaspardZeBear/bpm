@@ -19,9 +19,9 @@ class Kick {
     this.detectedBPM = 0
     this.movingAvgSize = 20
     this.kickFreeze = 300
-    this.peakMinValue = 0.6
+    this.peakMinValue = 0.1
     this.rawInterval = 0
-    this.jumpPercentage = 3
+    this.jumpPercentage = 2
     this.setFilter()
   }
 
@@ -30,8 +30,8 @@ class Kick {
     this.kickFilter = this.audioContext.createBiquadFilter();
     this.kickFilter.type = 'bandpass';
     //kickFilter.type = 'lowpass';
-    this.kickFilter.frequency.value = 50; // Centre à 50 Hz (milieu de 40-60 Hz)
-    this.kickFilter.Q.value = 2.5; // 2.5 Bande passante étroite pour une plage de fréquences serrée
+    this.kickFilter.frequency.value = 200; // Centre à 50 Hz (milieu de 40-60 Hz)
+    this.kickFilter.Q.value = 10; // 2.5 Bande passante étroite pour une plage de fréquences serrée
   }
 
   //--------------------------------------------------------------------------------
@@ -86,8 +86,8 @@ class Kick {
     const interval = Date.now() - this.lastKickTime;
     // Détecter la grosse caisse lorsque TOUTES les conditions sont remplies :
     this.isKick = (jumpPercentage >= this.jumpPercentage
-      && peakAmplitude > this.lastPeakAmplitude
-      && peakAmplitude > this.peakMinValue
+      && peakAmplitude >= this.lastPeakAmplitude
+      //&& peakAmplitude > this.peakMinValue
       && interval > this.kickFreeze)
 
     console.log(`kick ${this.id} amplitude ${peakAmplitude} baseAmplitude ${this.baselineAmplitude} interval ${interval}  lastPeak ${this.lastPeakAmplitude} jumpPercentage ${jumpPercentage} `);
